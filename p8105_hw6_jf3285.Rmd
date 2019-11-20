@@ -93,15 +93,24 @@ weather_df %>%
     glanced = map(models, glance)) %>% 
   select(-strap, -models) 
 
+# estimate[1] = intercept, estimate[2] = slope
 bootstrap_beta = 
   bootstrap_regression %>% 
   select(-glanced) %>% 
-  unnest(tidied) 
-
+  unnest(tidied) %>% 
+  group_by(.id) %>% 
+  summarize(beta_product = log(estimate[[1]]*estimate[[2]]))
+bootstrap_beta %>% 
+  ggplot(aes(x = beta_product)) + geom_density()
+quantile(bootstrap_beta$beta_product, 0.025)
+quantile(bootstrap_beta$beta_product, 0.975)
 
 bootstrap_rsq = 
   bootstrap_regression %>% 
   select(-tidied) %>% 
   unnest(glanced)
-
+bootstrap_rsq %>% 
+  ggplot(aes(x = r.squared)) + geom_density() 
+quantile(bootstrap_rsq$`r.squared`, 0.025)
+quantile(bootstrap_rsq$`r.squared`, 0.975)
 ```
