@@ -8,6 +8,8 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(broom)
+library(modelr)
+library(mgcv)
 ```
 
 ## Problem 1
@@ -19,11 +21,25 @@ birthweight_clean = birthweight %>%
          frace = factor(frace),
          malform = factor(malform),
          mrace = factor(mrace)) %>% 
+  mutate(babysex = fct_infreq(babysex),
+         frace = fct_infreq(frace),
+         malform = fct_infreq(malform),
+         mrace = fct_infreq(mrace)) %>% 
   mutate(babysex = recode(babysex, "1" = "male", "2" = "female"),
          frace = recode(frace, "1" = "White", "2" = "Black", "3" = "Asian", "4" = "Puerto Rican", "8" = "Other", "9" = "Unknown"),
          malform = recode(malform, "0" = "absent", "1" = "present"),
          mrace = recode(mrace, "1" = "White", "2" = "Black", "3" = "Asian", "4" = "Puerto Rican", "8" = "Other"))
-  
+
+fit0 = lm(bwt ~ ., data = birthweight_clean)
+summary(fit0)
+fit = lm(bwt ~ babysex + gaweeks + bhead * mrace + blength * smoken + wtgain, data = birthweight_clean)
+summary(fit)
+
+model1 = lm(bwt ~ blength + gaweeks, data = birthweight_clean)
+summary(model1)
+model2 = lm(bwt ~ bhead * blength * babysex, data = birthweight_clean)
+summary(model2)
+
 ```
 
 ## Including Plots
