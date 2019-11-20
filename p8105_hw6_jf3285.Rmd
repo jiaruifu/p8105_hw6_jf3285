@@ -34,20 +34,40 @@ fit0 = lm(bwt ~ ., data = birthweight_clean)
 summary(fit0)
 
 birthweight_fit = birthweight_clean %>% 
-  select(babysex, bhead, blength, bwt, gaweeks, mrace, smoken, wtgain)
+  select(babysex, bhead, blength, bwt, gaweeks, mrace, smoken, wtgain) 
+
 fit = lm(bwt ~ babysex + gaweeks + bhead * mrace + blength * smoken + wtgain, data = birthweight_fit)
 summary(fit)
 
-birthweight_fit %>% 
+birthweight_clean %>% 
   modelr::add_residuals(fit) %>% 
   modelr::add_predictions(fit) %>% 
   ggplot(aes(x = pred, y = resid)) + geom_point() 
 
-model1 = lm(bwt ~ blength + gaweeks, data = birthweight_clean)
+model1 = lm(bwt ~ blength + gaweeks, data = birthweight_fit)
 summary(model1)
-model2 = lm(bwt ~ bhead * blength * babysex, data = birthweight_clean)
+model2 = lm(bwt ~ bhead * blength * babysex, data = birthweight_fit)
 summary(model2)
 
+cv_df = crossv_mc(birthweight_fit, 100)
+cv_df = 
+  cv_df %>% 
+  mutate(fit = map(train, ~lm(bwt ~ babysex + gaweeks + bhead * mrace + blength * smoken + wtgain, data = birthweight_fit)),
+         model1 = map(train, ~lm(bwt ~ blength + gaweeks, data = birthweight_fit)),
+         model2 = map(train, ~lm(bwt ~ bhead * blength * babysex, data = birthweight_fit))) %>% 
+  mutate(rmse_fit = map2_dbl(fit, test, ~rmse(model = .x, data = .y)),
+         rmse_model1 = map2_dbl(model1, test, ~rmse(model = .x, data = .y)),
+         rmse_model2 = map2_dbl(model2, test, ~rmse(model = .x, data = .y)))
+
+cv_df %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
 ## Including Plots
