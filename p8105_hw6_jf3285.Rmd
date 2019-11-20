@@ -70,12 +70,38 @@ cv_df %>%
   ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
-## Including Plots
+## Problem 2
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
 
-You can also embed plots, for example:
+bootstrap_regression = 
+weather_df %>% 
+  modelr::bootstrap(n = 5000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x) ),
+    tidied = map(models, broom::tidy),
+    glanced = map(models, glance)) %>% 
+  select(-strap, -models) 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+bootstrap_beta = 
+  bootstrap_regression %>% 
+  select(-glanced) %>% 
+  unnest(tidied) 
+
+
+bootstrap_rsq = 
+  bootstrap_regression %>% 
+  select(-tidied) %>% 
+  unnest(glanced)
+
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
