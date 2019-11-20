@@ -32,8 +32,16 @@ birthweight_clean = birthweight %>%
 
 fit0 = lm(bwt ~ ., data = birthweight_clean)
 summary(fit0)
-fit = lm(bwt ~ babysex + gaweeks + bhead * mrace + blength * smoken + wtgain, data = birthweight_clean)
+
+birthweight_fit = birthweight_clean %>% 
+  select(babysex, bhead, blength, bwt, gaweeks, mrace, smoken, wtgain)
+fit = lm(bwt ~ babysex + gaweeks + bhead * mrace + blength * smoken + wtgain, data = birthweight_fit)
 summary(fit)
+
+birthweight_fit %>% 
+  modelr::add_residuals(fit) %>% 
+  modelr::add_predictions(fit) %>% 
+  ggplot(aes(x = pred, y = resid)) + geom_point() 
 
 model1 = lm(bwt ~ blength + gaweeks, data = birthweight_clean)
 summary(model1)
