@@ -13,7 +13,7 @@ library(mgcv)
 ```
 
 ## Problem 1
-After observing that the 'parity', 'pnumlbw', and 'pnumsga' columns are all zero, these three columns are removed from the dataset. The categorical variables are converted from numeric to factor, recoded and ordered based most frequent to infrequent. First, a linear model with all the variables inside is used to see if there's a good fit, and based on the summary result, non-significant predictors (large p-value) are removed from the model. Then, several attempts are made to find out the interactions between these predictors: baby's head circumference is strongly associated with mother's race and baby's length at birth also depends on the average number of cigarettes mothers smoked per day during pregnancy. 
+After observing that the 'parity', 'pnumlbw', and 'pnumsga' columns are all zero, these three columns are removed from the dataset. The categorical variables are converted from numeric to factor, recoded and ordered from most frequent to infrequent. First, a linear model with all the variables inside is used to see if there's a good fit, and based on the summary result, non-significant predictors (large p-value) are removed from the model. Then, several attempts are made to find out the interactions between these predictors: baby's head circumference is strongly associated with mother's race and baby's length also depends on the average number of cigarettes mothers smoked per day during pregnancy. 
 ```{r}
 # load and clean the data
 birthweight = read.csv("data/birthweight.csv") 
@@ -86,6 +86,7 @@ It can be seen in the first residual plot that the residuals are randomly distri
 
 ## Problem 2
 ```{r}
+# download the data
 weather_df = 
   rnoaa::meteo_pull_monitors(
     c("USW00094728"),
@@ -98,6 +99,9 @@ weather_df =
     tmax = tmax / 10) %>%
   select(name, id, everything())
 
+# use 5000 bootstrap samples 
+# fit a linear model with tmax and tmin
+# rsq is in glance and betas are in tidy
 bootstrap_regression = 
 weather_df %>% 
   modelr::bootstrap(n = 5000) %>% 
@@ -113,9 +117,12 @@ bootstrap_beta =
   select(-glanced) %>% 
   unnest(tidied) %>% 
   group_by(.id) %>% 
+  # log(beta0*beta1)
   summarize(beta_product = log(estimate[[1]]*estimate[[2]]))
+# plot the distribution
 bootstrap_beta %>% 
   ggplot(aes(x = beta_product)) + geom_density()
+# identify the 2.5% and 97.5% quantiles to provide a 95% CI
 quantile(bootstrap_beta$beta_product, 0.025)
 quantile(bootstrap_beta$beta_product, 0.975)
 
@@ -123,8 +130,12 @@ bootstrap_rsq =
   bootstrap_regression %>% 
   select(-tidied) %>% 
   unnest(glanced)
+# plot the distribution
 bootstrap_rsq %>% 
   ggplot(aes(x = r.squared)) + geom_density() 
+# identify the 2.5% and 97.5% quantiles to provide a 95% CI
 quantile(bootstrap_rsq$`r.squared`, 0.025)
 quantile(bootstrap_rsq$`r.squared`, 0.975)
 ```
+
+The distribution of log(beta0_hat*beta1_hat) is slightly left-skewed with the 95% confidence interval of `r quantile(pull(bootstrap_beta, beta_product), 0.025)` and `r quantile(pull(bootstrap_beta, beta_product), 0.975)`. The distribution of r_hat_squared follows a normal distribution with the 95% confidence interval of `r quantile(pull(bootstrap_rsq, r.squared), 0.025)` and `r quantile(pull(bootstrap_rsq, r.squared), 0.975)`.
