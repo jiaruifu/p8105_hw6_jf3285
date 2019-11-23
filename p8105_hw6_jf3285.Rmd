@@ -13,42 +13,53 @@ library(mgcv)
 ```
 
 ## Problem 1
+After observing that the 'parity', 'pnumlbw', and 'pnumsga' columns are all zero, these three columns are removed from the dataset. The categorical variables are converted from numeric to factor, recoded and ordered based most frequent to infrequent. First, a linear model with all the variables inside is used to see if there's a good fit, and based on the summary result, non-significant predictors (large p-value) are removed from the model. Then, several attempts are made to find out the interactions between these predictors: baby's head circumference is strongly associated with mother's race and baby's length at birth also depends on the average number of cigarettes mothers smoked per day during pregnancy. 
 ```{r}
+# load and clean the data
 birthweight = read.csv("data/birthweight.csv") 
 birthweight_clean = birthweight %>%  
+  # select important columns only
   select(-parity, -pnumlbw, -pnumsga) %>%
+  # as factor(categorical variables)
   mutate(babysex = factor(babysex),
          frace = factor(frace),
          malform = factor(malform),
          mrace = factor(mrace)) %>% 
+  # order based on frequency
   mutate(babysex = fct_infreq(babysex),
          frace = fct_infreq(frace),
          malform = fct_infreq(malform),
          mrace = fct_infreq(mrace)) %>% 
+  # recode categorical variables
   mutate(babysex = recode(babysex, "1" = "male", "2" = "female"),
          frace = recode(frace, "1" = "White", "2" = "Black", "3" = "Asian", "4" = "Puerto Rican", "8" = "Other", "9" = "Unknown"),
          malform = recode(malform, "0" = "absent", "1" = "present"),
          mrace = recode(mrace, "1" = "White", "2" = "Black", "3" = "Asian", "4" = "Puerto Rican", "8" = "Other"))
 
+# lm using all the variables
 fit0 = lm(bwt ~ ., data = birthweight_clean)
 summary(fit0)
 
+# select variables of interest
 birthweight_fit = birthweight_clean %>% 
   select(babysex, bhead, blength, bwt, gaweeks, mrace, smoken, wtgain) 
 
+# propose a model
 fit = lm(bwt ~ babysex + gaweeks + bhead * mrace + blength * smoken + wtgain, data = birthweight_fit)
 summary(fit)
 
+# plot of model residuals against fitted values
 birthweight_clean %>% 
   modelr::add_residuals(fit) %>% 
   modelr::add_predictions(fit) %>% 
-  ggplot(aes(x = pred, y = resid)) + geom_point() 
+  ggplot(aes(x = pred, y = resid)) + geom_point() + ggtitle("Model residuals against fitted values")
 
 model1 = lm(bwt ~ blength + gaweeks, data = birthweight_fit)
 summary(model1)
 model2 = lm(bwt ~ bhead * blength * babysex, data = birthweight_fit)
 summary(model2)
 
+# cross-validated prediction error
 cv_df = crossv_mc(birthweight_fit, 100)
 cv_df = 
   cv_df %>% 
@@ -59,6 +70,7 @@ cv_df =
          rmse_model1 = map2_dbl(model1, test, ~rmse(model = .x, data = .y)),
          rmse_model2 = map2_dbl(model2, test, ~rmse(model = .x, data = .y)))
 
+# plot of cross-validated prediction error
 cv_df %>% 
   select(starts_with("rmse")) %>% 
   pivot_longer(
@@ -67,8 +79,10 @@ cv_df %>%
     values_to = "rmse",
     names_prefix = "rmse_") %>% 
   mutate(model = fct_inorder(model)) %>% 
-  ggplot(aes(x = model, y = rmse)) + geom_violin()
+  ggplot(aes(x = model, y = rmse)) + geom_violin() + ggtitle("Cross-validated prediction error for different models")
 ```
+
+It can be seen in the first residual plot that the residuals are randomly distributed near the zero line, except those outliers with extremely low predicted values. The second cross-validated prediction error plot shows that my model 'fit' has a lower prediction error and thus higher predictive accuracy compared to the other two candidate models.
 
 ## Problem 2
 ```{r}
