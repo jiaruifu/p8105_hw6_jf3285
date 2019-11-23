@@ -121,7 +121,7 @@ bootstrap_beta =
   summarize(beta_product = log(estimate[[1]]*estimate[[2]]))
 # plot the distribution
 bootstrap_beta %>% 
-  ggplot(aes(x = beta_product)) + geom_density()
+  ggplot(aes(x = beta_product)) + geom_density() + labs(x = "log(beta0_hat*beta1_hat)")
 # identify the 2.5% and 97.5% quantiles to provide a 95% CI
 quantile(bootstrap_beta$beta_product, 0.025)
 quantile(bootstrap_beta$beta_product, 0.975)
@@ -138,4 +138,4 @@ quantile(bootstrap_rsq$`r.squared`, 0.025)
 quantile(bootstrap_rsq$`r.squared`, 0.975)
 ```
 
-The distribution of log(beta0_hat*beta1_hat) is slightly left-skewed with the 95% confidence interval of `r quantile(pull(bootstrap_beta, beta_product), 0.025)` and `r quantile(pull(bootstrap_beta, beta_product), 0.975)`. The distribution of r_hat_squared follows a normal distribution with the 95% confidence interval of `r quantile(pull(bootstrap_rsq, r.squared), 0.025)` and `r quantile(pull(bootstrap_rsq, r.squared), 0.975)`.
+The distribution of log(beta0_hat*beta1_hat) follows a normal distribution with the 95% confidence interval of `r quantile(pull(bootstrap_beta, beta_product), 0.025)` and `r quantile(pull(bootstrap_beta, beta_product), 0.975)`. The distribution of r_hat_squared follows a normal distribution with the 95% confidence interval of `r quantile(pull(bootstrap_rsq, r.squared), 0.025)` and `r quantile(pull(bootstrap_rsq, r.squared), 0.975)`.
